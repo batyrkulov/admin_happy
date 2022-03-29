@@ -11,7 +11,6 @@ import {
   onSnapshot,
   doc,
   setDoc,
-  FieldValue,
   updateDoc,
 } from 'firebase/firestore';
 
@@ -27,9 +26,9 @@ const firebaseConfig = {
 }
 
 const fb = initializeApp(firebaseConfig)
-const db = getFirestore(fb)
+export const db = getFirestore(fb)
 
-export type User = {
+export type IShortUser = {
   id: string
   email: string
   name: string
@@ -38,14 +37,14 @@ export type User = {
 }
 
 export type Message = {
-  author: User
+  author: IShortUser
   createdAt: Date
   text: string
 }
 
 export type Chat = {
   id: string
-  interlocutors: User[]
+  interlocutors: IShortUser[]
   messages: Message[]
 }
 

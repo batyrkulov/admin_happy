@@ -1,4 +1,4 @@
-import { Message, User } from "app/api/chats"
+import { Message, IShortUser } from "app/api/chats"
 import { color } from "app/other/color"
 import { FLEX, ROW, SPACE_BETWEEN } from "app/other/common-styles"
 import moment from "moment"
@@ -46,7 +46,7 @@ const ACTIVE = {
 }
 
 type ChatItemProps = {
-  interlocutor: User
+  interlocutor: IShortUser
   lastMessage: Message | null
   id: string
   onItemClick: () => void
