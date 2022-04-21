@@ -1,12 +1,13 @@
-import { Chat, createNewMessage, getAllChats, IShortUser, subscribeToChat, updateUserData } from 'app/api/chats';
+import { Chat, createNewMessage, getAllChats, IShortUser, subscribeToChat, updateChatData, updateUserData } from 'app/api/chats';
 import { getAllDays, getAllProgresses, getAllQuestions, getAllQuestionsOfDay, IQuestion } from 'app/api/other';
 import { getUserInfoById, IProfile } from 'app/api/users';
 import { ChatItem } from 'app/components/ChatItem';
 import { RenderMessage } from 'app/components/RenderMessage';
 import { setUid } from 'app/mainSlice';
-import { COLOR, FLEX, HEIGHT, MARGIN_BOTTTOM, MARGIN_TOP } from 'app/other/common-styles';
+import { COLOR, FLEX, LINE_HEIGHT, MARGIN_BOTTTOM, MARGIN_TOP } from 'app/other/common-styles';
 import { main } from 'app/selectors';
 import { FirebaseApp } from 'firebase/app';
+import moment from 'moment';
 import React, { useRef, useState } from 'react';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -33,13 +34,18 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
   const [user, setUser] = useState<IProfile | null>(null)
   const [results, setResults] = useState<number[]>([0, 0, 0, 0, 0])
   const [chosenDay, setChosenDay] = useState<number>(0)
+  const [chosenBlockOfPages, setChosenBlockOfPages] = useState<1 | 2 | 3>(1)
+  const [visiblePages, setVisiblePages] = useState<number[]>([1, 2, 3])
   const [questionsOfChosenDay, setQuestionsOfChosenDay] = useState<IQuestion[]>([])
   const [admin_note, setAdmin_note] = useState<string>('')
   const [days, setDays] = useState<number[]>([])
-  const daysRef = useRef<null | HTMLDivElement>(null)
+  const [intervalId, setIntervalId] = useState<any>(null)
 
   const [middleHeight, setLeftHeight] = useState<number>(window.innerHeight)
   const [messagesContainerHeight, setMessagesContainerHeight] = useState<number>(window.innerHeight - (70 + 100))
+
+  const rightHeightWithoutQuestionsBlock: number = 430
+  const [questionsWrapperHeight, setQuestionsWrapperHeight] = useState<number>(window.innerHeight - rightHeightWithoutQuestionsBlock)
 
   useEffect(() => {
     updateChats()
@@ -47,7 +53,14 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
     window.addEventListener('resize', () => {
       setLeftHeight(window.innerHeight)
       setMessagesContainerHeight(window.innerHeight - (70 + 100))
+      setQuestionsWrapperHeight(window.innerHeight - rightHeightWithoutQuestionsBlock)
     })
+
+    setIntervalId(setInterval(() => {
+      updateChats()
+    }, 10000))
+
+    return () => clearInterval(intervalId)
   }, [])
 
   const MIDDLE_STYLE = {
@@ -70,7 +83,7 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
           if (user.name || user.surname)
             return (user.name?.toLowerCase().includes(search.toLowerCase()) || user.surname?.toLowerCase().includes(search.toLowerCase()))
           else
-            return (user.email.toLowerCase().includes(search.toLowerCase()))
+            return (user.email?.toLowerCase().includes(search.toLowerCase()))
         })
       )
     else setSearchedChats([])
@@ -94,6 +107,7 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
       setResults([0, 0, 0, 0, 0])
       subscribeToChat(chosenUid, setData)
       getUserInfoById(chosenUid).then(res => setUser(res))
+      updateChatData(chosenUid, { hasNewMessages: false })
     }
   }, [chosenUid])
 
@@ -101,6 +115,33 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
     if (chosenDay) {
       setQuestionsOfChosenDay([])
       getAllQuestionsOfDay(chosenDay).then(questions => setQuestionsOfChosenDay(questions))
+      if (chosenBlockOfPages === 1) {
+        if (chosenDay > visiblePages[0]) {
+          setChosenBlockOfPages(2)
+        } else if (chosenDay < visiblePages[0]) {
+          setVisiblePages([
+            visiblePages[0] - 1,
+            visiblePages[1] - 1,
+            visiblePages[2] - 1,
+          ])
+        }
+      } else if (chosenBlockOfPages === 3) {
+        if (chosenDay < visiblePages[2]) {
+          setChosenBlockOfPages(2)
+        } else if (chosenDay > visiblePages[2]) {
+          setVisiblePages([
+            visiblePages[0] + 1,
+            visiblePages[1] + 1,
+            visiblePages[2] + 1,
+          ])
+        }
+      } else if (chosenBlockOfPages === 2) {
+        if (chosenDay < visiblePages[1]) {
+          setChosenBlockOfPages(1)
+        } else if (chosenDay > visiblePages[1]) {
+          setChosenBlockOfPages(3)
+        }
+      }
     }
   }, [chosenDay])
 
@@ -222,6 +263,7 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
     },
       uid as string)
     updateUserData(chosenUid, { unread_messages_count: 1 })
+    updateChatData(chosenUid, { hasNewMessages: false })
     setMessage("")
   }
 
@@ -229,13 +271,15 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
     dispatch(setUid(''))
   }
 
-  const scrollDaysList = (n: number) => {
-    if (daysRef.current) {
-      daysRef.current!.scrollLeft += n
+  const chats2Show = search ? searchedChats : chats
+
+  let completed_at_text = 'Not completed yet'
+  if (user?.progress_check_days_completed_dates?.length) {
+    const res = user.progress_check_days_completed_dates.find(item => item.day === chosenDay)
+    if (res) {
+      completed_at_text = moment(res.completed_at).format('hh:mm:ss a - DD/MM/YYYY')
     }
   }
-
-  const chats2Show = search ? searchedChats : chats
 
   return (
     <div>
@@ -260,12 +304,13 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
             {!chats2Show.length && (!isLoading) &&
               <div>No users</div>
             }
-            {isLoading &&
+            {isLoading && !chats2Show.length &&
               <div style={MARGIN_TOP(20)}>Loading...</div>
             }
             {chats2Show.map((c) => (
               <div key={c.id} style={MARGIN_BOTTTOM(20)}>
                 <ChatItem
+                  hasNewMessages={c.hasNewMessages && chosenUid !== c.interlocutors[0].id &&  chosenUid !== c.interlocutors[1].id }
                   isActive={chosenUid === c.id}
                   id={c.id}
                   interlocutor={
@@ -316,14 +361,18 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
             <div style={S.RIGHT_HEADER}>
               <img
                 style={S.AVATAR}
-                src="https://cdn.iconscout.com/icon/free/png-256/avatar-370-456322.png"
+                src={
+                  user.avatar
+                  ||
+                  "https://cdn.iconscout.com/icon/free/png-256/avatar-370-456322.png"
+                }
               />
               <div style={S.RIGHT_NAME_CONTAINER}>
-                <h3>{user.name} {user.surname}</h3>
-                <h4>{user.email}</h4>
+                <h4 style={LINE_HEIGHT(0.1)}>{user.name} {user.surname}</h4>
+                <h5>{user.email}</h5>
                 <textarea
                   value={admin_note}
-                  rows={5}
+                  rows={3}
                   style={S.RIGHT_TEXTAREA}
                   onChange={e => setAdmin_note(e.target.value)}
                 >
@@ -331,81 +380,96 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
               </div>
             </div>
             <div style={S.DAYS_BIG_WRAPPER}>
-              <div style={{ ...FLEX(1), ...S.NEXT_PREV_BTNS }} onClick={() => scrollDaysList(-400)}>
+              <div style={FLEX(1)}></div>
+              <div
+                style={{ ...FLEX(1), ...S.NEXT_PREV_BTNS }}
+                onClick={() => {
+                  if (chosenDay !== 1)
+                    setChosenDay((chosenDay - 1))
+                }}
+              >
                 《
               </div>
-              <div style={{ ...S.DAYS, ...FLEX(10) }} ref={daysRef}>
-                {days.map(d => (
-                  <h3
-                    style={{ ...S.DAY, ...chosenDay === d && S.DAY_ACTIVE }}
-                    onClick={() => setChosenDay(d)}
-                  >
-                    {d}
-                  </h3>
-                ))}
+              <div
+                style={{ ...FLEX(1), ...S.DAY, ...chosenDay === visiblePages[0] && S.DAY_ACTIVE }}
+                onClick={() => setChosenDay(visiblePages[0])}
+              >
+                {visiblePages[0]}
               </div>
-              <div style={{ ...FLEX(1), ...S.NEXT_PREV_BTNS }} onClick={() => scrollDaysList(400)}>
+              <div
+                style={{ ...FLEX(1), ...S.DAY, ...(chosenDay === visiblePages[1]) && S.DAY_ACTIVE }}
+                onClick={() => setChosenDay(visiblePages[1])}
+              >
+                {visiblePages[1]}
+              </div>
+              <div
+                style={{ ...FLEX(1), ...S.DAY, ...chosenDay === visiblePages[2] && S.DAY_ACTIVE }}
+                onClick={() => setChosenDay(visiblePages[2])}
+              >
+                {visiblePages[2]}
+              </div>
+              <div
+                style={{ ...FLEX(1), ...S.NEXT_PREV_BTNS }}
+                onClick={() => {
+                  if (chosenDay !== days.length)
+                    setChosenDay((chosenDay + 1))
+                }}
+              >
                 》
               </div>
+              <div style={FLEX(1)}></div>
             </div>
-            <div style={S.QUESTIONS_AND_RESULTS_WRAPPER}>
-              <div style={HEIGHT(1800)}>
-                <div style={S.QUESTIONS_WRAPPER}>
-                  {!!questionsOfChosenDay.length && (
-                    questionsOfChosenDay.map(current_question => {
-                      let answer2obj = ''
-                      const found_answered_question = user.answered_questions.find(
-                        answered_question => (answered_question.question_id === current_question.id)
-                      )
-                      if (found_answered_question) {
-                        if (found_answered_question.type === 'text')
-                          // @ts-ignore
-                          answer2obj = found_answered_question.text_answer
-                        else if (found_answered_question.answers?.length) {
-                          found_answered_question.answers.forEach(answer => {
-                            questionsOfChosenDay.forEach(question => {
-                              if (question.id === current_question.id) {
-                                if (question.answers.some(answer2 => (answer == answer2.value))) {
-                                  // @ts-ignore
-                                  answer2obj += (answer2obj.length ? ', ' : '') + question
-                                    .answers
-                                    .find(answer2 => (answer === answer2.value)).text
-                                }
-                              }
-                            })
-                          })
-                        }
-                      }
-                      return (
-                        <div>
-                          <p>
-                            {current_question.question}
-                            <br></br>
-                            <br></br>
-                            {answer2obj && <span style={S.ANSWER}>{answer2obj}</span>}
-                          </p>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-                <div style={S.RESULTS_HEADER}><h2>Results for Progress Checks</h2></div>
-                <div style={S.DAYS_TABLE}>
-                  <div style={S.PROGRESS_ROW}>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 1</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 10</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 20</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 30</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 40</h3>
-                  </div>
-                  <div style={S.PROGRESS_ROW}>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[0]}</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[1]}</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[2]}</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[3]}</h3>
-                    <h3 style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[4]}</h3>
-                  </div>
-                </div>
+            <div style={S.TIME_COMPLETED}>Time completed: {completed_at_text}</div>
+            <div style={{...S.QUESTIONS_WRAPPER, ...{ height: questionsWrapperHeight }}}>
+              {!!questionsOfChosenDay.length && (
+                questionsOfChosenDay.map((current_question, index) => {
+                  let answer2obj = ''
+                  const found_answered_question = user.answered_questions.find(
+                    answered_question => (answered_question.question_id === current_question.id)
+                  )
+                  if (found_answered_question) {
+                    if (found_answered_question.type === 'text')
+                      // @ts-ignore
+                      answer2obj = found_answered_question.text_answer
+                    else if (found_answered_question.answers?.length) {
+                      found_answered_question.answers.forEach(answer => {
+                        questionsOfChosenDay.forEach(question => {
+                          if (question.id === current_question.id) {
+                            if (question.answers.some(answer2 => (answer == answer2.value))) {
+                              // @ts-ignore
+                              answer2obj += (answer2obj.length ? ', ' : '') + question
+                                .answers
+                                .find(answer2 => (answer === answer2.value)).text
+                            }
+                          }
+                        })
+                      })
+                    }
+                  }
+                  return (
+                    <div>
+                      {index + 1}. {current_question.question}
+                      {answer2obj && <div style={S.ANSWER_WRAPPER}><span style={S.ANSWER}>{answer2obj}</span></div>}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            <div style={S.RESULTS_HEADER}>Results for Progress Checks</div>
+            <div style={S.DAYS_TABLE}>
+              <div style={S.PROGRESS_ROW}>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 1</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 10</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 20</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 30</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>Day 40</div>
+              </div>
+              <div style={S.PROGRESS_ROW}>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[0]}</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[1]}</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[2]}</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[3]}</div>
+                <div style={{ ...FLEX(1), ...S.PROGRESS_ROW_ITEM }}>{results[4]}</div>
               </div>
             </div>
           </>)}

@@ -22,6 +22,8 @@ export const border = {
 
 export const FLEX = (n: number) => ({ display: 'flex', flex: n })
 
+export const LINE_HEIGHT = (n: number) => ({ lineHeight: n })
+
 export const HEIGHT = (n: number) => ({ height: n })
 
 export const WIDTH = (n: number | string) => ({ width: n })

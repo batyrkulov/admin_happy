@@ -21,6 +21,8 @@ const CONTENT = { alignSelf: "stretch", justifyContent: "space-between" }
 const NAME = {
   color: color.palette.black,
   cursor: 'pointer',
+  display: 'flex',
+  flexDirection: 'row' as 'row',
 }
 
 const MESSAGE_TEXT = {
@@ -45,15 +47,25 @@ const ACTIVE = {
   borderBottomRightRadius: 17,
 }
 
+const RED_DOT = {
+  backgroundColor: 'red',
+  width: 10,
+  height: 10,
+  borderRadius: 5,
+  marginLeft: 10,
+  marginTop: 4,
+}
+
 type ChatItemProps = {
   interlocutor: IShortUser
   lastMessage: Message | null
   id: string
   onItemClick: () => void
   isActive?: boolean
+  hasNewMessages?: boolean
 }
 
-export const ChatItem: FC<ChatItemProps> = ({ interlocutor, lastMessage, id, onItemClick, isActive }) => {
+export const ChatItem: FC<ChatItemProps> = ({ interlocutor, lastMessage, id, onItemClick, isActive, hasNewMessages, }) => {
   const date = useMemo(() => {
     return moment(lastMessage?.createdAt).isSame(new Date(), "day")
       ? moment(lastMessage?.createdAt).format("hh:mm")
@@ -74,7 +86,11 @@ export const ChatItem: FC<ChatItemProps> = ({ interlocutor, lastMessage, id, onI
     >
       <img
         style={AVATAR}
-        src="https://cdn.iconscout.com/icon/free/png-256/avatar-370-456322.png"
+        src={
+          interlocutor.avatar
+            ? interlocutor.avatar
+            : "https://cdn.iconscout.com/icon/free/png-256/avatar-370-456322.png"
+        }
       />
       <div style={{ ...ROW, ...FLEX(1), ...SPACE_BETWEEN }}>
         <div style={CONTENT}>
@@ -83,6 +99,7 @@ export const ChatItem: FC<ChatItemProps> = ({ interlocutor, lastMessage, id, onI
               ? `${interlocutor.name} ${interlocutor.surname}`
               : interlocutor.email
             }
+            {hasNewMessages && <div style={RED_DOT}></div>}
           </div>
           <div style={MESSAGE_TEXT}>
             {lastMessage?.text?.slice(0, 50)}{(lastMessage?.text?.length && lastMessage?.text?.length > 50) && '...'}

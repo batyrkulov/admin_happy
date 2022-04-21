@@ -36,17 +36,14 @@ export const MIDDLE = {
   flex: 2.7,
   flexDirection: 'column' as 'column',
   padding: 20,
+  paddingTop: 3,
 }
 
 export const RIGHT = {
   flex: 3,
   flexDirection: 'column' as 'column',
   padding: 20,
-}
-
-export const QUESTIONS_AND_RESULTS_WRAPPER = {
-  overflowY: 'scroll' as 'scroll',
-  height: 1500
+  paddingTop: 0,
 }
 
 export const LEFT = {
@@ -134,23 +131,17 @@ export const DAYS_BIG_WRAPPER = {
   alignItems: 'center',
 }
 
-export const DAYS = {
-  display: 'flex',
-  overflowX: 'auto' as 'auto',
-  overflowY: 'hidden' as 'hidden',
-  whiteSpace: 'nowrap' as 'nowrap',
-  width: 1,
-}
-
 export const DAY = {
-  padding: 13,
   cursor: 'pointer',
+  justifyContent: 'center',
+  fontSize: 18,
 }
 
 export const DAY_ACTIVE = {
   backgroundColor: color.primary,
   color: 'white',
   borderRadius: 7,
+  fontWeight: 'bold',
 }
 
 export const DISPLAY_FLEX = {
@@ -168,8 +159,7 @@ export const NEXT_PREV_BTNS = {
 export const QUESTIONS_WRAPPER = {
   display: 'flex',
   flexDirection: 'column' as 'column',
-  height: 380,
-  overflowY: 'auto' as 'auto',
+  overflowY: 'auto' as 'auto', 
   marginTop: 15,
 }
 
@@ -180,18 +170,24 @@ export const ANSWER = {
   borderRadius: 3,
 }
 
+export const ANSWER_WRAPPER = {
+  margin: 10,
+  marginBottom: 15,
+}
+
 export const RESULTS_HEADER = {
   display: 'flex',
   paddingTop: 5,
   paddingBottom: 5,
   justifyContent: 'center',
   alignItems: 'center',
+  fontSize: 13,
+  fontWeight: 'bold',
 }
 
 export const DAYS_TABLE = {
   display: 'flex',
   flexDirection: 'column' as 'column',
-  marginBotom: 100,
 }
 
 export const PROGRESS_ROW = {
@@ -203,4 +199,11 @@ export const PROGRESS_ROW_ITEM = {
   borderStyle: 'solid',
   borderWidth: 1,
   padding: 10,
+  fontSize: 15,
+}
+
+export const TIME_COMPLETED = {
+  marginTop: 10,
+  fontWeight: '500',
+  fontSize: 15,
 }

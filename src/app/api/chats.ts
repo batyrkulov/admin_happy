@@ -46,6 +46,7 @@ export type Chat = {
   id: string
   interlocutors: IShortUser[]
   messages: Message[]
+  hasNewMessages?: boolean
 }
 
 const getChatData = (doc: DocumentSnapshot): Promise<Chat> => {
@@ -54,6 +55,7 @@ const getChatData = (doc: DocumentSnapshot): Promise<Chat> => {
     id: doc.id,
     interlocutors: [],
     messages: [],
+    hasNewMessages: false,
   }
   const interlocutorsPromises = chatRef?.interlocutors.map((i: DocumentReference) => getDoc(i))
   return Promise.all(interlocutorsPromises).then((data) => {
@@ -75,7 +77,7 @@ const getChatData = (doc: DocumentSnapshot): Promise<Chat> => {
       // @ts-ignore
       ...d.data(),
     }))
-
+    chat.hasNewMessages = chatRef?.hasNewMessages
     return chat
   })
 }
@@ -125,6 +127,13 @@ export const createNewMessage = async (chatId: string, data: Message, adminUid: 
 
 export const updateUserData = async (uid: string, data: any) => {
   const ref = doc(db, "users", uid);
+  await updateDoc(ref, {
+    ...data
+  })
+}
+
+export const updateChatData = async (uid: string, data: any) => {
+  const ref = doc(db, "chats", uid);
   await updateDoc(ref, {
     ...data
   })

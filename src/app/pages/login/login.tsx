@@ -30,6 +30,7 @@ export const Login = ({ fb }: { fb: FirebaseApp }) => {
     <div style={S.WRAPPER}>
       <div>
         <input
+          placeholder='Email'
           style={S.INPUT}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -39,6 +40,7 @@ export const Login = ({ fb }: { fb: FirebaseApp }) => {
           value={pass}
           onChange={(e) => setPass(e.target.value)}
           type='password'
+          placeholder='Password'
         />
         <button style={S.BUTTON} onClick={onSend} >Login</button>
       </div>
