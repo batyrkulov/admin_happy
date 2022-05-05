@@ -168,6 +168,7 @@ export const ANSWER = {
   color: 'white',
   padding: 4,
   borderRadius: 3,
+  lineHeight: 1.5,
 }
 
 export const ANSWER_WRAPPER = {

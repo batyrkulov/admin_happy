@@ -24,6 +24,8 @@ export interface IProfile {
   got_message_after6h_from_first_login: boolean
   unread_messages_count: number
   admin_note: string
+  timezone_offset: string
+  timezone_name: string
 }
 
 

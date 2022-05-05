@@ -8,6 +8,7 @@ import { COLOR, FLEX, LINE_HEIGHT, MARGIN_BOTTTOM, MARGIN_TOP } from 'app/other/
 import { main } from 'app/selectors';
 import { FirebaseApp } from 'firebase/app';
 import moment from 'moment';
+import moment2 from 'moment-timezone';
 import React, { useRef, useState } from 'react';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -273,13 +274,83 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
 
   const chats2Show = search ? searchedChats : chats
 
+  const times = {
+    names: [
+      'ECT',
+      'EET',
+      'EAT',
+      'MET',
+      'NET',
+      'PLT',
+      'IST',
+      'BST',
+      'VST',
+      'CTT',
+      'JST',
+      'ACT',
+      'AET',
+      'SST',
+      'NST',
+
+      'MIT',
+      'HST',
+      'AST',
+      'PST',
+      'PNT',
+      'CST',
+      'EST',
+      'PRT',
+      'CNT',
+      'AGT',
+      'CAT',
+    ],
+    offsetFromUtc: [
+      '-60',
+      '-120',
+      '-180',
+      '-210',
+      '-240',
+      '-300',
+      '-330',
+      '-360',
+      '-420',
+      '-480',
+      '-540',
+      '-570',
+      '-630',
+      '-690',
+      '-750',
+
+      '750',
+      '690',
+      '570',
+      '540',
+      '480',
+      '420',
+      '330',
+      '300',
+      '240',
+      '210',
+      '60',
+    ],
+  }
+
   let completed_at_text = 'Not completed yet'
   if (user?.progress_check_days_completed_dates?.length) {
     const res = user.progress_check_days_completed_dates.find(item => item.day === chosenDay)
     if (res) {
-      completed_at_text = moment(res.completed_at).format('hh:mm:ss a - DD/MM/YYYY')
+      if (user?.timezone_name)
+        completed_at_text = moment2(res.completed_at).tz(user.timezone_name).format('hh:mm:ss a - DD/MM/YYYY')
+      else
+        completed_at_text = moment(res.completed_at).format('hh:mm:ss a - DD/MM/YYYY')
+      if (user?.timezone_offset) {
+        times.offsetFromUtc.forEach((val, i) => {
+          if (val === user.timezone_offset.toString()) completed_at_text += ' ' + times.names[i]
+        })
+      }
     }
   }
+
 
   return (
     <div>
@@ -310,7 +381,7 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
             {chats2Show.map((c) => (
               <div key={c.id} style={MARGIN_BOTTTOM(20)}>
                 <ChatItem
-                  hasNewMessages={c.hasNewMessages && chosenUid !== c.interlocutors[0].id &&  chosenUid !== c.interlocutors[1].id }
+                  hasNewMessages={c.hasNewMessages && chosenUid !== c.interlocutors[0].id && chosenUid !== c.interlocutors[1].id}
                   isActive={chosenUid === c.id}
                   id={c.id}
                   interlocutor={
@@ -420,7 +491,7 @@ export const Main = ({ fb }: { fb: FirebaseApp }) => {
               <div style={FLEX(1)}></div>
             </div>
             <div style={S.TIME_COMPLETED}>Time completed: {completed_at_text}</div>
-            <div style={{...S.QUESTIONS_WRAPPER, ...{ height: questionsWrapperHeight }}}>
+            <div style={{ ...S.QUESTIONS_WRAPPER, ...{ height: questionsWrapperHeight } }}>
               {!!questionsOfChosenDay.length && (
                 questionsOfChosenDay.map((current_question, index) => {
                   let answer2obj = ''
